@@ -76,8 +76,8 @@ int main(int argc, char *argv[]) {
             total_lines = line_idx;
           }
           line_idx++;
+          mode = APPEND; // now we append each next line
         }
-        mode = APPEND; // now we append each next line
         break;
       case APPEND:
         fgets(order, LIMIT, stdin);

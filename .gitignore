@@ -2,7 +2,8 @@
 ded
 # ignore other compiled files
 *.out
-# ignore .vscode configuration files
+# ignore test and .vscode configuration files
 .vscode/
+.testing/
 # ignore txt files
 *.txt

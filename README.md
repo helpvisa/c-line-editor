@@ -1,7 +1,9 @@
-# ded - Dan's Editor
+# ded - Dan's EDitor
 ## You should NOT use this text editor!
 
-"Dan's Editor" was built as an exercise in writing a text editor in C. It is
+That said, this file was written and saved using ded.
+
+Dan's EDitor (ded) was built as an exercise in writing a line editor in C. It is
 inspired mainly by ed.
 
 As I work my way through the C Programming Language, I will likely come back and

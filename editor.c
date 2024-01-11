@@ -56,10 +56,9 @@ int main(int argc, char *argv[]) {
   if (argc > 1) {
     path = argv[1];
     read_file(f);
-    printf("Editing %s.\n", path);
   } else {
     path = "untitled.txt";
-    printf("No file specified. Editing 'untitled.txt'.\nUse 'f' to set filename.\n");
+    printf("No file specified. Editing untitled.txt\nUse 'f' to set filename.\n");
   }
 
   while (active == TRUE) {
@@ -138,6 +137,9 @@ int read_input(char s[]) {
             break;
           case 'w':
             save_file(f);
+            break;
+          case 'r':
+            read_file(f);
             break;
           case 'p':
             print_lines();
@@ -236,13 +238,18 @@ void save_file(FILE *fptr) {
 // open and read the specified file
 void read_file(FILE *fptr) {
   fptr = fopen(path, "r");
-  line_idx = 1; // we start reading from line 1
-  while (fgets(lines[line_idx], LIMIT, fptr)) {
-    strip_newline(lines[line_idx]);
-    total_lines = line_idx;
-    line_idx++;
+  if (fptr != NULL) {
+    line_idx = 1; // we start reading from line 1
+    while (fgets(lines[line_idx], LIMIT, fptr)) {
+      strip_newline(lines[line_idx]);
+      total_lines = line_idx;
+      line_idx++;
+    }
+    printf("Editing %s\n", path);
+    fclose(fptr);
+  } else {
+    printf("File %s does not exist!\n", path);
   }
-  fclose(fptr);
 }
 
 // print the document

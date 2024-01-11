@@ -42,7 +42,7 @@ enum Bool { // whether the application should keep the core input loop alive
 //--------// global variable definitions //
 FILE *f;
 char *path;
-char *prompt = ">";
+char prompt[LIMIT];
 char command = '.'; // the character which prompts command parsing
 int mode = PROMPT;
 int active = TRUE;
@@ -52,6 +52,7 @@ int line_idx = 1;
 int total_lines = 0;
 
 int main(int argc, char *argv[]) {
+  prompt[0] = '>'; // default prompt
   // process args
   printf("Welcome to ded!\nType 'h' for a list of commands.\n");
   if (argc > 1) {
@@ -129,6 +130,7 @@ int read_input(char s[]) { // read the input string to parse and exec commands
           case 'i':
             mode = INSERT;
             printf("Entering insert mode on line %d...\n", line_idx);
+            stop_parsing = 1;
             break;
           case 'a':
             shift_lines_up(line_idx+1, total_lines);
@@ -136,6 +138,7 @@ int read_input(char s[]) { // read the input string to parse and exec commands
             line_idx++;
             mode = INSERT; // shifting lines up 'appends'; we insert on new line
             printf("Entering append mode on new line %d...\n", line_idx);
+            stop_parsing = 1;
             break;
           case 'd':
             lines[line_idx][0] = '\0';
@@ -149,6 +152,7 @@ int read_input(char s[]) { // read the input string to parse and exec commands
             break;
           case 'q':
             active = FALSE;
+            stop_parsing = 1;
             break;
           case 'w':
             save_file(f);
@@ -171,14 +175,30 @@ int read_input(char s[]) { // read the input string to parse and exec commands
           case 'l':
             printf("%d total lines in document.\n", total_lines);
             break;
+          case '>':
+            int prompt_idx = 0;
+            for (int j = i+1; s[j] != '\0'; j++) {
+              prompt_idx = j-i-1;
+              prompt[prompt_idx] = s[j];
+            }
+            prompt[prompt_idx+1] = '\0'; // null EOF char
+            stop_parsing = 1;
+            break;
           case 'f':;
             char new_name[LIMIT];
             int length = 0;
-            for (int j = i+1; s[j] != '\0' && s[j] != '\n'; j++) {
-              new_name[j-i-1] = s[j];
-              length++;
+            int name_idx = 0;
+            for (int j=i+1;
+              s[j] != '\0' &&
+              s[j] != '\n' &&
+              s[j] != ' ' &&
+              s[j] != '\t'; j++) {
+                name_idx = j-i-1;
+                new_name[name_idx] = s[j];
+                length++;
             }
             if (length > 0) {
+              new_name[name_idx+1] = '\0'; // null EOF char
               path = new_name;
               printf("Changed filename to %s\n", path);
             } else printf("No filename entered!\nEditing %s\n", path);

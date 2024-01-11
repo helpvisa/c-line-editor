@@ -4,7 +4,7 @@
 "Dan's Editor" was built as an exercise in writing a text editor in C. It is
 inspired mainly by ed.
 
-As I work my way through the C Programming Language, I will likely come back
+As I work my way through the C Programming Language, I will likely come back and
 update / divide the program as needed, to create something that is, at least
 in some small way, actually usable!
 

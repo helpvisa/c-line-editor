@@ -1,4 +1,6 @@
-# ignore compiled files
+# ignore specifically the ded binary
+ded
+# ignore other compiled files
 *.out
 # ignore .vscode configuration files
 .vscode/

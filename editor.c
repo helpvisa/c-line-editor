@@ -53,7 +53,7 @@ int total_lines = 0;
 
 int main(int argc, char *argv[]) {
   // process args
-  printf("Welcome to %s!\nType 'h' for a list of commands.\n", argv[0]);
+  printf("Welcome to ded!\nType 'h' for a list of commands.\n");
   if (argc > 1) {
     path = argv[1];
     read_file(f);

@@ -1,0 +1,4 @@
+# ignore compiled files
+*.out
+# ignore .vscode configuration files
+.vscode/

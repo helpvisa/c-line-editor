@@ -62,7 +62,7 @@ int read_input(char s[]) {
   int command_parsed = 0;
   
   // was the command prefix specified?
-  if (s[0] == '.') {
+  if (s[0] == '.' && s[1] != '.') {
     // check for a blank command prompt
     if (s[1] == '\0') {
       printf("?BLANK COMMAND?\n");
@@ -81,6 +81,9 @@ int read_input(char s[]) {
             break;
           case 'n':
             print_lines_numbered();
+            break;
+          case 'c':
+            printf("%d characters on current line.\n", count_chars(lines[line_idx]));
             break;
           default:
             printf("?COMMAND %d NOT RECOGNIZED?\n", i);
@@ -115,26 +118,29 @@ void strip_newline(char s[]) {
 
 // save the open file to disk
 void save_file(FILE *fptr) {
+  int total_characters = 0; // total number of characters saved to disk
+
   fptr = fopen(path, "w"); // open our file in write mode
   // write the text in memory to our file
   for (int i = 1; i <= total_lines; i++) {
+    total_characters += count_chars(lines[i]) + 1; // we add an extra 1 to account for the missing 'newline' added by our fprintf
     fprintf(fptr, "%s\n", lines[i]);
   }
   fclose(fptr); // close our open file (free mem, unlock it for other programs)
 
-  printf("File saved to %s.\n", path);
+  printf("\033[33m%d bytes saved to disk at %s.\033[0m\n", total_characters, path);
 }
 
 // print the document
 void print_lines() {
   for (int i = 1; i <= total_lines; i++) {
-    printf("%s\n", lines[i]);
+    printf("\033[32m%s\033[0m\n", lines[i]);
   }
 }
 
 // print the document with prepended numbers
 void print_lines_numbered() {
   for (int i = 1; i <= total_lines; i++) {
-    printf("%5d %s\n", i, lines[i]);
+    printf("\033[31m%5d\033[0m \033[34m%s\033[0m\n", i, lines[i]);
   }
 }

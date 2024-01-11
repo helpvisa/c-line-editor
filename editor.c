@@ -11,6 +11,7 @@ a terminal-based editor in the C language.
 // command functions
 int read_input(char s[]); // read the input to parse commands
 // string modification functions
+void copy_string(char from[], char to[]); // copy a string to another string
 void strip_newline(char s[]); // remove newline characters from a given input string
 int squeeze(char s[], char c); // remove given character from a string
 int line_squeeze(char s1[], char s2[]); // remove from s1 all characters occurring in s2
@@ -21,6 +22,9 @@ void save_file(FILE *fptr);
 int count_chars(char s[]);
 void print_lines();
 void print_lines_numbered();
+void print_help();
+/* --> will have to include a function which checks all lines up to current total line count
+in order to account for 'deleting' a line at the end of the file and leaving blank lines behind */
 
 // enumerators
 enum Mode { // mode the text editor is currently operating within
@@ -48,12 +52,17 @@ int main() {
   while (active == TRUE) {
     switch (mode) {
       case INSERT:
-        fgets(lines[line_idx], LIMIT, stdin);
-        strip_newline(lines[line_idx]); // remove newline chars
-        int parsed = read_input(lines[line_idx]); // check if a command was input
+        fgets(order, LIMIT, stdin);
+        strip_newline(order); // remove newline chars
+        int parsed = read_input(order); // check if a command was input
         if (!parsed) {
+          // copy order string to line index
+          copy_string(order, lines[line_idx]);
+          // we run this check first, as it is in consideration of our current line, not the next one
+          if (line_idx > total_lines) {
+            total_lines = line_idx; // accounts for blank lines
+          }
           line_idx++;
-          total_lines++;
         }
         break;
       default: // we default to PROMPT mode if no other mode is set
@@ -68,6 +77,16 @@ int main() {
   return 0;
 }
 
+//---functions---///
+// copy one string to another
+void copy_string(char from[], char to[]) {
+  int i;
+  for (i = 0; from[i] != '\0'; i++) {
+    to[i] = from[i];
+  }
+  to[i] = '\0'; // EOF null character
+}
+
 // read the input string to parse and execute user commands
 int read_input(char s[]) {
   int command_parsed = 0;
@@ -75,10 +94,10 @@ int read_input(char s[]) {
   // was the command prefix specified in insert mode?
   if (mode == INSERT && s[0] == command && s[1] == '\0') {
     mode = PROMPT;
-    command_parsed = 0;
-  }
-  // we are in prompt mode; parse chained commands
-  if (mode == PROMPT) {
+    command_parsed = 1;
+    printf("Entering prompt mode...\n");
+    return command_parsed;
+  } else if (mode == PROMPT) {
     // check for a blank command prompt
     if (s[0] == '\0') {
       printf("?BLANK COMMAND?\n");
@@ -88,6 +107,7 @@ int read_input(char s[]) {
         switch (s[i]) {
           case 'i':
             mode = INSERT;
+            printf("Entering insert mode...\n");
             break;
           case 'q':
             active = FALSE;
@@ -101,11 +121,29 @@ int read_input(char s[]) {
           case 'n':
             print_lines_numbered();
             break;
-          case 'c':
-            printf("%d characters on current line.\n", count_chars(lines[line_idx]));
+          case 'c':;
+            int count = count_chars(lines[line_idx]);
+            printf("%d character%s on current line (%d).\n", count, (count > 1 || count < 1) ? "s" : "", line_idx);
+            break;
+          case 'l':
+            printf("%d total lines in document.\n", total_lines);
+            break;
+          case 'g':;
+            int goto_line = 0; // the line we target
+            for (int j = i+1; s[j] >= '0' && s[j] <= '9'; j++) {
+              goto_line *= 10;
+              goto_line += s[j] - '0'; // convert char to real int
+            }
+            if (goto_line > -1 && goto_line < LIMIT) {
+              line_idx = goto_line;
+            } else {
+              line_idx = 0;
+            }
+            printf("Sitting on line %d...\n", line_idx);
             break;
           default:
-            printf("?COMMAND %d NOT RECOGNIZED?\n", i);
+            if (!(s[i] >= '0' && s[i] <= '9'))
+              printf("?COMMAND %d NOT RECOGNIZED?\n", i);
             break;
         }
       }

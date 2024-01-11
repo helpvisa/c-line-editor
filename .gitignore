@@ -2,3 +2,5 @@
 *.out
 # ignore .vscode configuration files
 .vscode/
+# ignore txt files
+*.txt

@@ -1,54 +1,53 @@
-/*
-A basic text editor written as an exercise in coding
-a terminal-based editor in the C language.
-*/
-
+/* A basic text editor written as an exercise in coding
+a terminal-based editor in the C language. */
 #include <stdio.h>
 
-#define LIMIT 25000 // the limit for line length / number of lines
+#define LIMIT 25000
 
-// function definitions
-// command functions
-int read_input(char s[]); // read the input to parse commands
-// string modification functions
-void copy_string(char from[], char to[]); // copy a string to another string
-void strip_newline(char s[]); // remove newline characters from a given input string
-int squeeze(char s[], char c); // remove given character from a string
-int line_squeeze(char s1[], char s2[]); // remove from s1 all characters occurring in s2
-void condense(char s[]); // removes any recurring instance of any character in the given string
-void shift_lines_down(int from, int to); // shifts all lines down starting at a point and ending at another point
-// file functions
+//--------// command functions //
+int read_input(char s[]);
+//-------// string modification functions //
+void copy_string(char from[], char to[]);
+void strip_newline(char s[]); 
+int squeeze(char s[], char c);
+int line_squeeze(char s1[], char s2[]);void condense(char s[]);
+void shift_lines_down(int from, int to);
+void shift_lines_up(int from, int to);
+//-------// file functions
 void save_file(FILE *fptr);
 void read_file(FILE *fptr);
-// misc functions
+//-------// misc functions
 int count_chars(char s[]);
 void print_lines();
 void print_lines_numbered();
 void print_help();
 /* --> will have to include a function which checks all lines up to current total line count
-in order to account for 'deleting' a line at the end of the file and leaving blank lines behind */
+in order to account for 'deleting' a line at the end of the file and leaving blank lines behind.
+--> we should also have a way to insert text in between lines without overwriting the lines
+which follow (an append function triggered by the a command.
+--> we should also alter the user if the file has been modified but not saved when they attempt to quit. */
 
-// enumerators
 enum Mode { // mode the text editor is currently operating within
   INSERT,
+  APPEND,
   PROMPT
 };
-enum IsActive { // whether the application should keep the core input loop alive
+enum Bool { // whether the application should keep the core input loop alive
   TRUE,
   FALSE
 };
 
-// global variable definitions
-FILE *f; // pointer to our file
-char *path; // path to our file (temporarily set here for testing)
-char *prompt = ">"; // the command prompt
+//--------// global variable definitions //
+FILE *f;
+char *path;
+char *prompt = ">";
 char command = '.'; // the character which prompts command parsing
 int mode = PROMPT;
 int active = TRUE;
 char lines[LIMIT][LIMIT];
-char order[LIMIT]; // the last order input at the prompt
-int line_idx = 1; // line we are currently on; we use 1 so we can use '0' to prepend the first line of the file
-int total_lines = 0; // the total number of lines with data on them
+char order[LIMIT];
+int line_idx = 1;
+int total_lines = 0;
 
 int main(int argc, char *argv[]) {
   // process args
@@ -62,18 +61,29 @@ int main(int argc, char *argv[]) {
   }
 
   while (active == TRUE) {
+    int parsed;
     switch (mode) {
       case INSERT:
         fgets(order, LIMIT, stdin);
         strip_newline(order); // remove newline chars
-        int parsed = read_input(order); // check if a command was input
+        parsed = read_input(order); // check if a command was input
         if (!parsed) {
-          // copy order string to line index
           copy_string(order, lines[line_idx]);
-          // we run this check first, as it is in consideration of our current line, not the next one
           if (line_idx > total_lines) {
-            total_lines = line_idx; // accounts for blank lines
+            total_lines = line_idx;
           }
+          line_idx++;
+        }
+        mode = APPEND; // now we append each next line
+        break;
+      case APPEND:
+        fgets(order, LIMIT, stdin);
+        strip_newline(order); // remove newline chars
+        parsed = read_input(order); // check if a command was input
+        if (!parsed) {
+          shift_lines_up(line_idx, total_lines);
+          total_lines++;
+          copy_string(order, lines[line_idx]);
           line_idx++;
         }
         break;
@@ -81,7 +91,7 @@ int main(int argc, char *argv[]) {
         printf("%s", prompt);
         fgets(order, LIMIT, stdin);
         strip_newline(order);
-        read_input(order); // check if a command was input
+        read_input(order);
         break;
     }
   }
@@ -89,9 +99,8 @@ int main(int argc, char *argv[]) {
   return 0;
 }
 
-//---functions---///
-// copy one string to another
-void copy_string(char from[], char to[]) {
+//--------// functions //
+void copy_string(char from[], char to[]) { // copy one string to another
   int i;
   for (i = 0; from[i] != '\0'; i++) {
     to[i] = from[i];
@@ -99,28 +108,31 @@ void copy_string(char from[], char to[]) {
   to[i] = '\0'; // EOF null character
 }
 
-// read the input string to parse and execute user commands
-int read_input(char s[]) {
+int read_input(char s[]) { // read the input string to parse and execute user commands
   int command_parsed = 0;
   
-  // was the command prefix specified in insert mode?
-  if (mode == INSERT && s[0] == command && s[1] == '\0') {
+  if (mode != PROMPT && s[0] == command && s[1] == '\0') {
     mode = PROMPT;
     command_parsed = 1;
     printf("Entering prompt mode...\n");
     return command_parsed;
   } else if (mode == PROMPT) {
-    // check for a blank command prompt
     if (s[0] == '\0') {
       printf("? Blank command.\n");
     } else if (s[0] != command) {
       int stop_parsing = 0; // if 1, do not execute next command
-      // check following characters
       for (int i = 0; s[i] != '\0' && stop_parsing == 0; i++) {
         switch (s[i]) {
           case 'i':
             mode = INSERT;
-            printf("Entering insert mode...\n");
+            printf("Entering insert mode on line %d...\n", line_idx);
+            break;
+          case 'a':
+            shift_lines_up(line_idx+1, total_lines);
+            total_lines++;
+            line_idx++;
+            mode = INSERT; // the act of shifting lines up 'appends'; we just insert on the new line
+            printf("Entering append mode on new line %d...\n", line_idx);
             break;
           case 'd':
             lines[line_idx][0] = '\0';
@@ -194,15 +206,13 @@ int read_input(char s[]) {
   return command_parsed; // 1 if successful
 }
 
-// count the number of characters in a given string and return the int
-int count_chars(char s[]) {
+int count_chars(char s[]) { // count the number of characters in a given string and return the int
   int count;
   for (count = 0; s[count] != '\0'; count++) ;
   return count;
 }
 
-// strip all newline characters from the input string
-void strip_newline(char s[]) {
+void strip_newline(char s[]) { // strip all newline characters from the input string
   int i, j;
 
   for (i = j = 0; s[i] != '\0'; i++) {
@@ -213,15 +223,19 @@ void strip_newline(char s[]) {
   s[j] = '\0';
 }
 
-// shift all lines down from the start point up to the end point
-void shift_lines_down(int from, int to) {
-  for (int i = from; i < to; i++) {
+void shift_lines_down(int from, int to) { // shift all lines down from the start point up to the end point
+  for (int i = from; i <= to; i++) {
     copy_string(lines[i+1], lines[i]);
   }
 }
 
-// save the open file to disk
-void save_file(FILE *fptr) {
+void shift_lines_up(int from, int to) { // shift all lines down from the start point up to the end point
+  for (int i = to; i >= from; i--) {
+    copy_string(lines[i], lines[i+1]);
+  }
+}
+
+void save_file(FILE *fptr) { // save the open file to disk
   int total_characters = 0; // total number of characters saved to disk
 
   fptr = fopen(path, "w"); // open our file in write mode
@@ -235,8 +249,7 @@ void save_file(FILE *fptr) {
   printf("\033[33m%d bytes saved to disk at %s.\033[0m\n", total_characters, path);
 }
 
-// open and read the specified file
-void read_file(FILE *fptr) {
+void read_file(FILE *fptr) { // open and read the specified file
   fptr = fopen(path, "r");
   if (fptr != NULL) {
     line_idx = 1; // we start reading from line 1
@@ -252,15 +265,13 @@ void read_file(FILE *fptr) {
   }
 }
 
-// print the document
-void print_lines() {
+void print_lines() { // print the document
   for (int i = 1; i <= total_lines; i++) {
     printf("\033[32m%s\033[0m\n", lines[i]);
   }
 }
 
-// print the document with prepended numbers
-void print_lines_numbered() {
+void print_lines_numbered() { // print the document with prepended numbers
   for (int i = 1; i <= total_lines; i++) {
     printf("\033[31m%5d\033[0m \033[34m%s\033[0m\n", i, lines[i]);
   }

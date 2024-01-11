@@ -36,21 +36,32 @@ enum IsActive { // whether the application should keep the core input loop alive
 FILE *f; // pointer to our file
 char *path = "test_output.txt"; // path to our file (temporarily set here for testing)
 char *prompt = ">"; // the command prompt
-int mode = INSERT;
+char command = '.'; // the character which prompts command parsing
+int mode = PROMPT;
 int active = TRUE;
 char lines[LIMIT][LIMIT];
+char order[LIMIT]; // the last order input at the prompt
 int line_idx = 1; // line we are currently on; we use 1 so we can use '0' to prepend the first line of the file
 int total_lines = 0; // the total number of lines with data on them
 
 int main() {
   while (active == TRUE) {
-    printf("%s", prompt);
-    fgets(lines[line_idx], LIMIT, stdin);
-    strip_newline(lines[line_idx]); // remove newline chars
-    int parsed = read_input(lines[line_idx]); // check if a command was input
-    if (!parsed) {
-      line_idx++;
-      total_lines++;
+    switch (mode) {
+      case INSERT:
+        fgets(lines[line_idx], LIMIT, stdin);
+        strip_newline(lines[line_idx]); // remove newline chars
+        int parsed = read_input(lines[line_idx]); // check if a command was input
+        if (!parsed) {
+          line_idx++;
+          total_lines++;
+        }
+        break;
+      default: // we default to PROMPT mode if no other mode is set
+        printf("%s", prompt);
+        fgets(order, LIMIT, stdin);
+        strip_newline(order);
+        read_input(order); // check if a command was input
+        break;
     }
   }
 
@@ -61,15 +72,23 @@ int main() {
 int read_input(char s[]) {
   int command_parsed = 0;
   
-  // was the command prefix specified?
-  if (s[0] == '.' && s[1] != '.') {
+  // was the command prefix specified in insert mode?
+  if (mode == INSERT && s[0] == command && s[1] == '\0') {
+    mode = PROMPT;
+    command_parsed = 0;
+  }
+  // we are in prompt mode; parse chained commands
+  if (mode == PROMPT) {
     // check for a blank command prompt
-    if (s[1] == '\0') {
+    if (s[0] == '\0') {
       printf("?BLANK COMMAND?\n");
-    } else {
+    } else if (s[0] != command) {
       // check following characters
-      for (int i = 1; s[i] != '\0'; i++) {
+      for (int i = 0; s[i] != '\0'; i++) {
         switch (s[i]) {
+          case 'i':
+            mode = INSERT;
+            break;
           case 'q':
             active = FALSE;
             break;

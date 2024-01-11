@@ -21,11 +21,13 @@ int count_chars(char s[]);
 void print_lines();
 void print_lines_numbered();
 void print_help();
-/* --> will have to include a function which checks all lines up to current total line count
-in order to account for 'deleting' a line at the end of the file and leaving blank lines behind.
---> we should also have a way to insert text in between lines without overwriting the lines
-which follow (an append function triggered by the a command.
---> we should also alter the user if the file has been modified but not saved when they attempt to quit. */
+/* --> will have to include a function which checks all lines up to current
+total line count in order to account for 'deleting' a line at the end of the
+file and leaving blank lines behind.
+--> we should also have a way to insert text in between lines without
+overwriting the lines which follow (an append function triggered by 'a').
+--> we should also alert if buffer has been modified but not saved when
+an attempt is made to quit the progrma. */
 
 enum Mode { // mode the text editor is currently operating within
   INSERT,
@@ -57,7 +59,8 @@ int main(int argc, char *argv[]) {
     read_file(f);
   } else {
     path = "untitled.txt";
-    printf("No file specified. Editing untitled.txt\nUse 'f' to set filename.\n");
+    printf("No file specified. Editing untitled.txt\n"
+      "Use 'f' to set filename.\n");
   }
 
   while (active == TRUE) {
@@ -108,7 +111,7 @@ void copy_string(char from[], char to[]) { // copy one string to another
   to[i] = '\0'; // EOF null character
 }
 
-int read_input(char s[]) { // read the input string to parse and execute user commands
+int read_input(char s[]) { // read the input string to parse and exec commands
   int command_parsed = 0;
   
   if (mode != PROMPT && s[0] == command && s[1] == '\0') {
@@ -131,7 +134,7 @@ int read_input(char s[]) { // read the input string to parse and execute user co
             shift_lines_up(line_idx+1, total_lines);
             total_lines++;
             line_idx++;
-            mode = INSERT; // the act of shifting lines up 'appends'; we just insert on the new line
+            mode = INSERT; // shifting lines up 'appends'; we insert on new line
             printf("Entering append mode on new line %d...\n", line_idx);
             break;
           case 'd':
@@ -142,7 +145,7 @@ int read_input(char s[]) { // read the input string to parse and execute user co
               printf("Current line (%d) deleted.\n", line_idx);
               if (line_idx > total_lines+1)
                 line_idx = total_lines+1;
-            } else printf("Current line (%d) is already empty.\n", line_idx);
+            } else printf("Current line (%d) is empty.\n", line_idx);
             break;
           case 'q':
             active = FALSE;
@@ -161,7 +164,8 @@ int read_input(char s[]) { // read the input string to parse and execute user co
             break;
           case 'c':;
             int count = count_chars(lines[line_idx]);
-            printf("%d character%s on current line (%d).\n", count, (count > 1 || count < 1) ? "s" : "", line_idx);
+            printf("%d character%s on current line (%d).\n",
+              count, (count > 1 || count < 1) ? "s" : "", line_idx);
             printf("%s\n", lines[line_idx]);
             break;
           case 'l':
@@ -206,13 +210,13 @@ int read_input(char s[]) { // read the input string to parse and execute user co
   return command_parsed; // 1 if successful
 }
 
-int count_chars(char s[]) { // count the number of characters in a given string and return the int
+int count_chars(char s[]) { // count the chars in a given string
   int count;
   for (count = 0; s[count] != '\0'; count++) ;
   return count;
 }
 
-void strip_newline(char s[]) { // strip all newline characters from the input string
+void strip_newline(char s[]) { // strip all newliness from the input string
   int i, j;
 
   for (i = j = 0; s[i] != '\0'; i++) {
@@ -223,13 +227,13 @@ void strip_newline(char s[]) { // strip all newline characters from the input st
   s[j] = '\0';
 }
 
-void shift_lines_down(int from, int to) { // shift all lines down from the start point up to the end point
+void shift_lines_down(int from, int to) { // shift down within selection
   for (int i = from; i <= to; i++) {
     copy_string(lines[i+1], lines[i]);
   }
 }
 
-void shift_lines_up(int from, int to) { // shift all lines down from the start point up to the end point
+void shift_lines_up(int from, int to) { // shift up within selection
   for (int i = to; i >= from; i--) {
     copy_string(lines[i], lines[i+1]);
   }
@@ -241,12 +245,13 @@ void save_file(FILE *fptr) { // save the open file to disk
   fptr = fopen(path, "w"); // open our file in write mode
   // write the text in memory to our file
   for (int i = 1; i <= total_lines; i++) {
-    total_characters += count_chars(lines[i]) + 1; // we add an extra 1 to account for the missing 'newline' added by our fprintf
+    total_characters += count_chars(lines[i]) + 1; // add 1 for missing \n
     fprintf(fptr, "%s\n", lines[i]);
   }
-  fclose(fptr); // close our open file (free mem, unlock it for other programs)
+  fclose(fptr);
 
-  printf("\033[33m%d bytes saved to disk at %s.\033[0m\n", total_characters, path);
+  printf("\033[33m%d bytes saved to disk at %s.\033[0m\n",
+    total_characters, path);
 }
 
 void read_file(FILE *fptr) { // open and read the specified file

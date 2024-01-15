@@ -175,7 +175,7 @@ int read_input(char s[]) { // read the input string to parse and exec commands
           case 'l':
             printf("%d total lines in document.\n", total_lines);
             break;
-          case '>':
+          case '>':;
             int prompt_idx = 0;
             for (int j = i+1; s[j] != '\0'; j++) {
               prompt_idx = j-i-1;

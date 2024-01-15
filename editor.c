@@ -43,6 +43,7 @@ enum Bool { // whether the application should keep the core input loop alive
 FILE *f;
 char *path;
 char prompt[LIMIT];
+char prompt_col[9] = "\033[35m";
 char command = '.'; // the character which prompts command parsing
 int mode = PROMPT;
 int active = TRUE;
@@ -54,14 +55,14 @@ int total_lines = 0;
 int main(int argc, char *argv[]) {
   prompt[0] = '>'; // default prompt
   // process args
-  printf("Welcome to ded!\nType 'h' for a list of commands.\n");
+  printf("\033[33mWelcome to ded!\nType 'h' for a list of commands.\033[0m\n");
   if (argc > 1) {
     path = argv[1];
     read_file(f);
   } else {
     path = "untitled.txt";
-    printf("No file specified. Editing untitled.txt\n"
-      "Use 'f' to set filename.\n");
+    printf("\033[31mNo file specified. Editing untitled.txt\n"
+      "Use 'f' to set filename.\033[0m\n");
   }
 
   while (active == TRUE) {
@@ -92,13 +93,15 @@ int main(int argc, char *argv[]) {
         }
         break;
       default: // we default to PROMPT mode if no other mode is set
-        printf("%s", prompt);
+        printf("%s%s\033[0m", prompt_col, prompt);
         fgets(order, LIMIT, stdin);
         strip_newline(order);
         read_input(order);
         break;
     }
   }
+
+  printf("\n\033[33mGoodbye!\033[0m\n\n");
 
   return 0;
 }
@@ -114,22 +117,24 @@ void copy_string(char from[], char to[]) { // copy one string to another
 
 int read_input(char s[]) { // read the input string to parse and exec commands
   int command_parsed = 0;
+  copy_string("\033[35m", prompt_col); // reset prompt col
   
   if (mode != PROMPT && s[0] == command && s[1] == '\0') {
     mode = PROMPT;
     command_parsed = 1;
-    printf("Entering prompt mode...\n");
+    printf("\033[33mEntering prompt mode...\033[0m\n");
     return command_parsed;
   } else if (mode == PROMPT) {
     if (s[0] == '\0') {
-      printf("? Blank command.\n");
+      printf("\033[31m? Blank command.\033[0m\n");
+      copy_string("\033[31m", prompt_col); // set prompt col to red
     } else if (s[0] != command) {
       int stop_parsing = 0; // if 1, do not execute next command
       for (int i = 0; s[i] != '\0' && stop_parsing == 0; i++) {
         switch (s[i]) {
           case 'i':
             mode = INSERT;
-            printf("Entering insert mode on line %d...\n", line_idx);
+            printf("\033[33mEntering insert mode on line %d...\033[0m\n", line_idx);
             stop_parsing = 1;
             break;
           case 'a':
@@ -137,7 +142,7 @@ int read_input(char s[]) { // read the input string to parse and exec commands
             total_lines++;
             line_idx++;
             mode = INSERT; // shifting lines up 'appends'; we insert on new line
-            printf("Entering append mode on new line %d...\n", line_idx);
+            printf("\033[33mEntering append mode on new line %d...\033[0m\n", line_idx);
             stop_parsing = 1;
             break;
           case 'd':
@@ -145,10 +150,10 @@ int read_input(char s[]) { // read the input string to parse and exec commands
               if (line_idx <= total_lines) {
               shift_lines_down(line_idx,total_lines);
               total_lines--; // we have deleted one line
-              printf("Current line (%d) deleted.\n", line_idx);
+              printf("\033[33mCurrent line (%d) deleted.\033[0m\n", line_idx);
               if (line_idx > total_lines+1)
                 line_idx = total_lines+1;
-            } else printf("Current line (%d) is empty.\n", line_idx);
+            } else printf("\033[33mCurrent line (%d) is empty.\033[0m\n", line_idx);
             break;
           case 'q':
             active = FALSE;
@@ -168,12 +173,12 @@ int read_input(char s[]) { // read the input string to parse and exec commands
             break;
           case 'c':;
             int count = count_chars(lines[line_idx]);
-            printf("%d character%s on current line (%d).\n",
+            printf("\033[33m%d character%s on current line (%d).\033[0m\n",
               count, (count > 1 || count < 1) ? "s" : "", line_idx);
-            printf("%s\n", lines[line_idx]);
+            printf("\033[32m%s\033[0m\n", lines[line_idx]);
             break;
           case 'l':
-            printf("%d total lines in document.\n", total_lines);
+            printf("\033[33m%d total lines in document.\033[0m\n", total_lines);
             break;
           case '>':;
             int prompt_idx = 0;
@@ -200,8 +205,12 @@ int read_input(char s[]) { // read the input string to parse and exec commands
             if (length > 0) {
               new_name[name_idx+1] = '\0'; // null EOF char
               path = new_name;
-              printf("Changed filename to %s\n", path);
-            } else printf("No filename entered!\nEditing %s\n", path);
+              printf("\033[33mChanged filename to %s\033[0m\n", path);
+            } else {
+              printf("\033[31m"
+                "No filename entered!\nEditing %s\033[0m\n", path);
+              copy_string("\033[31m", prompt_col); // set prompt col to red
+            }
             stop_parsing = 1;
             break;
           case 'g':;
@@ -215,11 +224,15 @@ int read_input(char s[]) { // read the input string to parse and exec commands
             } else {
               line_idx = 0;
             }
-            printf("Sitting on line %d...\n", line_idx);
+            printf("\033[33m"
+              "Sitting on line %d...033[0m\n", line_idx);
             break;
           default:
-            if (!(s[i] >= '0' && s[i] <= '9'))
-              printf("? Command '%c' not recognized.\n", s[i]);
+            if (!(s[i] >= '0' && s[i] <= '9')) {
+              printf("\033[31m"
+                "? Command '%c' not recognized.\033[0m\n", s[i]);
+              copy_string("\033[31m", prompt_col); // set prompt col to red
+            }
             break;
         }
       }
@@ -283,10 +296,11 @@ void read_file(FILE *fptr) { // open and read the specified file
       total_lines = line_idx;
       line_idx++;
     }
-    printf("Editing %s\n", path);
+    printf("\033[33mEditing %s\033[0m\n", path);
     fclose(fptr);
   } else {
-    printf("File %s does not exist!\n", path);
+    printf("\033[31mFile %s does not exist!\033[0m\n", path);
+    copy_string("\033[31m", prompt_col); // set prompt col to red
   }
 }
 
@@ -298,6 +312,6 @@ void print_lines() { // print the document
 
 void print_lines_numbered() { // print the document with prepended numbers
   for (int i = 1; i <= total_lines; i++) {
-    printf("\033[31m%5d\033[0m \033[34m%s\033[0m\n", i, lines[i]);
+    printf("\033[31m%5d\033[0m \033[32m%s\033[0m\n", i, lines[i]);
   }
 }
